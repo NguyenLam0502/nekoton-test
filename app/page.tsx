@@ -1,9 +1,7 @@
 'use client'
 
 import WebApp from '@twa-dev/sdk'
-import axios from 'axios';
-import { isNumber } from 'lodash';
-import { useRouter, useSearchParams, useParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import io, { Socket } from 'socket.io-client'
 
