@@ -25,12 +25,14 @@ const mockUser: UserData = {
 // const WEB_SOCKET_URL = 'ws://localhost:5397'
 const WEB_SOCKET_URL = 'https://nekobot-api.namifutures.com'
 
+export const MAX_ENERGY = 1000;
 
 export default function Home() {
   const params = useSearchParams();
   const router = useRouter()
 
-  const [userData, setUserData] = useState<UserData | null>(null)
+  const [userData, setUserData] = useState<UserData | null>(mockUser)
+  // const [userData, setUserData] = useState<UserData | null>(null)
   const [score, setScore] = useState(0)
   const [incr, setIncr] = useState(0)
   const [energy, setEnergy] = useState(0)
@@ -40,11 +42,12 @@ export default function Home() {
 
   useEffect(() => {
     const interval = setInterval(() => {
+      if (energy >= MAX_ENERGY) return;
       setEnergy(prev => prev + 1);
     }, 5000); // mỗi 5s thì +1 energy
 
     return () => clearInterval(interval);
-  }, []);
+  }, [energy]);
 
   useEffect(() => {
     if (WebApp.initDataUnsafe.user) {
@@ -67,9 +70,9 @@ export default function Home() {
   }, [params, router])
 
   useEffect(() => {
-    console.log("___userData", userData);
-
     if (userData) {
+      console.log("___userData", userData);
+
       const newSocket = io(WEB_SOCKET_URL, {
         path: "/ws",
         query: { userId: userData.id.toString() }
@@ -83,7 +86,7 @@ export default function Home() {
       });
 
       newSocket.on('score', (res) => {
-        console.log('ON event score: ', res);
+        console.log('ON event score: ', res?.data?.score);
 
         const value = res?.data?.score;
         if (value !== null && value !== undefined) setScore(value)
@@ -114,7 +117,7 @@ export default function Home() {
 
       if (tapTimeout) clearTimeout(tapTimeout);
       const timeout = setTimeout(() => {
-        handleIfStopTap();
+        handleIfStopTap(incr + 1); // vì trong timeout nên sẽ miss 1 lần, phải +incr lên
       }, 1000);
       setTapTimeout(timeout);
     } catch (error) {
@@ -122,18 +125,27 @@ export default function Home() {
     }
   };
 
-  const handleIfStopTap = async () => {
-    console.log("____handleIfStopTap");
-
+  const handleIfStopTap = (_incr?: number) => {
+    if (!_incr) _incr = incr
     if (socket) {
-      socket.emit('update_score', { userId: userData?.id, incr, energy });
+      socket.emit('update_score', { userId: userData?.id, incr: _incr, energy });
       setScore(prev => {
-        const newScore = prev + incr;
-        setIncr(0)
-        return newScore
+        setIncr(0);
+        return prev + _incr
       })
     }
   }
+
+  const handleCopyRefLink = () => {
+    if (userData) {
+      const refLink = `https://t.me/nekoton_nami_test_bot/nekoton_nami_test_web_app_name?startapp=${userData.id}`;
+      navigator.clipboard.writeText(refLink).then(() => {
+        alert('Referral link copied to clipboard!');
+      }).catch(err => {
+        console.error('Failed to copy the referral link: ', err);
+      });
+    }
+  };
 
   return (
     <main className="p-4">
@@ -144,6 +156,10 @@ export default function Home() {
               Score: {score + incr}
             </div>
 
+            <button
+              className="bg-blue-500 text-white px-4 py-2 rounded-md disabled:bg-slate-500"
+              onClick={handleCopyRefLink}>Get Ref link</button>
+
             <div className='mb-4'>
               Energy: {energy}
             </div>
@@ -152,7 +168,7 @@ export default function Home() {
             <button
               disabled={energy <= 0}
               onClick={handleButtonTap}
-              className="bg-blue-500 text-white px-4 py-2 rounded-md"
+              className="bg-blue-500 text-white px-4 py-2 rounded-md disabled:bg-slate-500"
             >
               Tap Me
             </button>
