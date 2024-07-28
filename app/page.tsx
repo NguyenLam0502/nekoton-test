@@ -25,7 +25,7 @@ const mockUser: UserData = {
 // const WEB_SOCKET_URL = 'ws://localhost:5397'
 const WEB_SOCKET_URL = 'https://nekobot-api.namifutures.com'
 
-export const MAX_ENERGY = 1000;
+const MAX_ENERGY = 1000;
 
 export default function Home() {
   const params = useSearchParams();
